@@ -37,6 +37,14 @@ struct Converter<atom::AutoResizeFlags> {
     if (params.Get("height", &height) && height) {
       flags |= atom::kAutoResizeHeight;
     }
+    bool horizontal = false;
+    if (params.Get("horizontal", &horizontal) && horizontal) {
+      flags |= atom::kAutoResizeHorizontal;
+    }
+    bool vertical = false;
+    if (params.Get("vertical", &vertical) && vertical) {
+      flags |= atom::kAutoResizeVertical;
+    }
 
     *auto_resize_flags = static_cast<atom::AutoResizeFlags>(flags);
     return true;
@@ -153,9 +161,9 @@ void Initialize(v8::Local<v8::Object> exports,
   mate::Dictionary browser_view(
       isolate, BrowserView::GetConstructor(isolate)->GetFunction());
   browser_view.SetMethod("fromId",
-                          &mate::TrackableObject<BrowserView>::FromWeakMapID);
+                         &mate::TrackableObject<BrowserView>::FromWeakMapID);
   browser_view.SetMethod("getAllViews",
-                          &mate::TrackableObject<BrowserView>::GetAll);
+                         &mate::TrackableObject<BrowserView>::GetAll);
   mate::Dictionary dict(isolate, exports);
   dict.Set("BrowserView", browser_view);
 }
