@@ -158,6 +158,7 @@ void TopLevelWindow::OnWindowClosed() {
 
   RemoveFromParentChildWindows();
   ResetBrowserView();
+  ResetBrowserViews();
 
   // Destroy the native class when window is closed.
   base::ThreadTaskRunnerHandle::Get()->PostTask(FROM_HERE, GetDestroyClosure());
@@ -663,6 +664,33 @@ void TopLevelWindow::SetBrowserView(v8::Local<v8::Value> value) {
   }
 }
 
+void TopLevelWindow::AddBrowserView(v8::Local<v8::Value> value) {
+  mate::Handle<BrowserView> browser_view;
+  if (value->IsNull() || value->IsUndefined()) {
+  } else if (mate::ConvertFromV8(isolate(), value, &browser_view)) {
+    auto get_that_view = browser_views_.find(browser_view->weak_map_id());
+    if (get_that_view == browser_views_.end()) {
+      window_->AddBrowserView(browser_view->view());
+      browser_view->web_contents()->SetOwnerWindow(window_.get());
+      browser_views_[browser_view->weak_map_id()].Reset(isolate(), value);
+    }
+  }
+}
+
+void TopLevelWindow::RemoveBrowserView(v8::Local<v8::Value> value) {
+  mate::Handle<BrowserView> browser_view;
+  if (value->IsNull() || value->IsUndefined()) {
+  } else if (mate::ConvertFromV8(isolate(), value, &browser_view)) {
+    auto get_that_view = browser_views_.find(browser_view->weak_map_id());
+    if (get_that_view != browser_views_.end()) {
+      window_->RemoveBrowserView(browser_view->view());
+      browser_view->web_contents()->SetOwnerWindow(nullptr);
+      (*get_that_view).second.Reset(isolate(), value);
+      browser_views_.erase(get_that_view);
+    }
+  }
+}
+
 v8::Local<v8::Value> TopLevelWindow::GetNativeWindowHandle() {
   gfx::AcceleratedWidget handle = window_->GetAcceleratedWidget();
   return ToBuffer(isolate(), static_cast<void*>(&handle), sizeof(handle));
@@ -810,6 +838,15 @@ v8::Local<v8::Value> TopLevelWindow::GetBrowserView() const {
   return v8::Local<v8::Value>::New(isolate(), browser_view_);
 }
 
+std::vector<v8::Local<v8::Value>> TopLevelWindow::GetBrowserViews() const {
+  std::vector<v8::Local<v8::Value>> ret;
+  for (auto views_iter = browser_views_.begin();
+       views_iter != browser_views_.end(); views_iter++) {
+    ret.push_back(v8::Local<v8::Value>::New(isolate(), (*views_iter).second));
+  }
+  return ret;
+}
+
 bool TopLevelWindow::IsModal() const {
   return window_->is_modal();
 }
@@ -910,6 +947,22 @@ void TopLevelWindow::ResetBrowserView() {
   }
 
   browser_view_.Reset();
+}
+
+void TopLevelWindow::ResetBrowserViews() {
+  for (auto views_iter = browser_views_.begin();
+       views_iter != browser_views_.end(); views_iter++) {
+    mate::Handle<BrowserView> browser_view;
+    if (mate::ConvertFromV8(
+            isolate(),
+            v8::Local<v8::Value>::New(isolate(), (*views_iter).second),
+            &browser_view) &&
+        !browser_view.IsEmpty()) {
+      browser_view->web_contents()->SetOwnerWindow(nullptr);
+    }
+    (*views_iter).second.Reset();
+  }
+  browser_views_.clear();
 }
 
 void TopLevelWindow::RemoveFromParentChildWindows() {
@@ -1019,6 +1072,8 @@ void TopLevelWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setParentWindow", &TopLevelWindow::SetParentWindow)
 #endif
       .SetMethod("setBrowserView", &TopLevelWindow::SetBrowserView)
+      .SetMethod("addBrowserView", &TopLevelWindow::AddBrowserView)
+      .SetMethod("removeBrowserView", &TopLevelWindow::RemoveBrowserView)
       .SetMethod("getNativeWindowHandle",
                  &TopLevelWindow::GetNativeWindowHandle)
       .SetMethod("setProgressBar", &TopLevelWindow::SetProgressBar)
@@ -1054,6 +1109,7 @@ void TopLevelWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getParentWindow", &TopLevelWindow::GetParentWindow)
       .SetMethod("getChildWindows", &TopLevelWindow::GetChildWindows)
       .SetMethod("getBrowserView", &TopLevelWindow::GetBrowserView)
+      .SetMethod("getBrowserViews", &TopLevelWindow::GetBrowserViews)
       .SetMethod("isModal", &TopLevelWindow::IsModal)
       .SetMethod("setThumbarButtons", &TopLevelWindow::SetThumbarButtons)
 #if defined(TOOLKIT_VIEWS)

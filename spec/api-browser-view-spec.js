@@ -1,3 +1,4 @@
+
 'use strict'
 
 const chai = require('chai')
@@ -123,6 +124,54 @@ describe('BrowserView module', () => {
     it('returns null if none is set', () => {
       let view = w.getBrowserView()
       expect(view).to.be.null()
+    })
+  })
+
+  describe('BrowserWindow.addBrowserView()', () => {
+    it('does not throw for valid args', () => {
+      let view1 = new BrowserView()
+      w.addBrowserView(view1)
+      let view2 = new BrowserView()
+      w.addBrowserView(view2)
+      view1.destroy()
+      view1 = null
+      view2.destroy()
+      view2 = null
+    })
+    it('does not throw if called multiple times with same view', () => {
+      view = new BrowserView()
+      w.addBrowserView(view)
+      w.addBrowserView(view)
+      w.addBrowserView(view)
+    })
+  })
+
+  describe('BrowserWindow.removeBrowserView()', () => {
+    it('does not throw if called multiple times with same view', () => {
+      view = new BrowserView()
+      w.addBrowserView(view)
+      w.removeBrowserView(view)
+      w.removeBrowserView(view)
+    })
+  })
+
+  describe('BrowserWindow.getBrowserViews()', () => {
+    it('returns same views as was added', () => {
+      let view1 = new BrowserView()
+      w.addBrowserView(view1)
+      let view2 = new BrowserView()
+      w.addBrowserView(view2)
+
+      expect(view1.id).to.be.not.null()
+      let views = w.getBrowserViews()
+      expect(views.length).to.equal(2)
+      expect(views[0].webContents.id).to.equal(view1.webContents.id)
+      expect(views[1].webContents.id).to.equal(view2.webContents.id)
+
+      view1.destroy()
+      view1 = null
+      view2.destroy()
+      view2 = null
     })
   })
 
