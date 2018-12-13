@@ -1165,26 +1165,6 @@ void NativeWindowViews::OnWidgetActivationChanged(views::Widget* changed_widget,
   root_view_->ResetAltState();
 }
 
-void NativeWindowViews::AutoresizeBrowserView(int width_delta,
-                                              int height_delta,
-                                              NativeBrowserView* browser_view) {
-  const auto flags =
-      static_cast<NativeBrowserViewViews*>(browser_view)->GetAutoResizeFlags();
-  if (!(flags & kAutoResizeWidth)) {
-    width_delta = 0;
-  }
-  if (!(flags & kAutoResizeHeight)) {
-    height_delta = 0;
-  }
-  if (height_delta || width_delta) {
-    auto* view = browser_view->GetInspectableWebContentsView()->GetView();
-    auto new_view_size = view->size();
-    new_view_size.set_width(new_view_size.width() + width_delta);
-    new_view_size.set_height(new_view_size.height() + height_delta);
-    view->SetSize(new_view_size);
-  }
-}
-
 void NativeWindowViews::OnWidgetBoundsChanged(views::Widget* changed_widget,
                                               const gfx::Rect& bounds) {
   if (changed_widget != widget())
@@ -1197,12 +1177,17 @@ void NativeWindowViews::OnWidgetBoundsChanged(views::Widget* changed_widget,
     int width_delta = new_bounds.width() - widget_size_.width();
     int height_delta = new_bounds.height() - widget_size_.height();
     if (browser_view()) {
-      AutoresizeBrowserView(width_delta, height_delta, browser_view());
+      static_cast<NativeBrowserViewViews*>(browser_view())
+          ->SetAutoResizeProportions(widget_size_);
+      static_cast<NativeBrowserViewViews*>(browser_view())
+          ->AutoResize(new_bounds, width_delta, height_delta);
     }
     auto views_list = browser_views();
-    for (auto iter = views_list.begin(); iter != views_list.end();
-         iter++) {
-      AutoresizeBrowserView(width_delta, height_delta, (*iter));
+    for (auto iter = views_list.begin(); iter != views_list.end(); iter++) {
+      static_cast<NativeBrowserViewViews*>((*iter))->SetAutoResizeProportions(
+          widget_size_);
+      static_cast<NativeBrowserViewViews*>((*iter))->AutoResize(
+          new_bounds, width_delta, height_delta);
     }
 
     NotifyWindowResize();
