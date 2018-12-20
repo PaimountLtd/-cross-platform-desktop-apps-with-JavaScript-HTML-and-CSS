@@ -21,6 +21,8 @@ namespace atom {
 enum AutoResizeFlags {
   kAutoResizeWidth = 0x1,
   kAutoResizeHeight = 0x2,
+  kAutoResizeHorizontal = 0x4,
+  kAutoResizeVertical = 0x8,
 };
 
 class InspectableWebContents;
@@ -41,6 +43,10 @@ class NativeBrowserView {
   content::WebContents* GetWebContents();
 
   virtual void SetAutoResizeFlags(uint8_t flags) = 0;
+  virtual void SetAutoResizeProportions(gfx::Size window_size) = 0;
+  virtual void AutoResize(const gfx::Rect& new_window,
+                          int width_delta,
+                          int height_delta) = 0;
   virtual void SetBounds(const gfx::Rect& bounds) = 0;
   virtual void SetBackgroundColor(SkColor color) = 0;
 
