@@ -7,6 +7,7 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include <list>
 #include <string>
 #include <vector>
 
@@ -92,7 +93,6 @@ class NativeWindowMac : public NativeWindow,
   bool IsDocumentEdited() override;
   void SetIgnoreMouseEvents(bool ignore, bool) override;
   void SetContentProtection(bool enable) override;
-  void SetBrowserView(NativeBrowserView* browser_view) override;
   void AddBrowserView(NativeBrowserView* browser_view) override;
   void RemoveBrowserView(NativeBrowserView* browser_view) override;
 
@@ -190,7 +190,10 @@ class NativeWindowMac : public NativeWindow,
   // The view that will fill the whole frameless window.
   base::scoped_nsobject<FullSizeContentView> content_view_;
 
+<<<<<<< HEAD
   NativeBrowserView* browser_view_;
+=======
+>>>>>>> sl_multi_browser_views_support_2-0-x
   std::list<NativeBrowserView*> browser_views_;
 
   std::vector<DraggableRegion> draggable_regions_;

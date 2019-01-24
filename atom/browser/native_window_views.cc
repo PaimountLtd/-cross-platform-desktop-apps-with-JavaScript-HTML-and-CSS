@@ -140,7 +140,6 @@ NativeWindowViews::NativeWindowViews(
     : NativeWindow(web_contents, options, parent),
       window_(new views::Widget),
       web_view_(inspectable_web_contents()->GetView()->GetView()),
-      browser_view_(nullptr),
       menu_bar_autohide_(false),
       menu_bar_visible_(false),
       menu_bar_alt_pressed_(false),
@@ -948,24 +947,6 @@ void NativeWindowViews::SetMenu(AtomMenuModel* menu_model) {
   Layout();
 }
 
-void NativeWindowViews::SetBrowserView(NativeBrowserView* browser_view) {
-  if (browser_view_) {
-    web_view_->RemoveChildView(
-        browser_view_->GetInspectableWebContentsView()->GetView());
-    browser_view_ = nullptr;
-  }
-
-  if (!browser_view) {
-    return;
-  }
-
-  // Add as child of the main web view to avoid (0, 0) origin from overlapping
-  // with menu bar.
-  browser_view_ = browser_view;
-  web_view_->AddChildView(
-      browser_view->GetInspectableWebContentsView()->GetView());
-}
-
 void NativeWindowViews::AddBrowserView(NativeBrowserView* view) {
   if (!view) {
     return;
@@ -1172,14 +1153,8 @@ void NativeWindowViews::OnWidgetBoundsChanged(views::Widget* widget,
   if (widget_size_ != new_bounds.size()) {
     int width_delta = new_bounds.width() - widget_size_.width();
     int height_delta = new_bounds.height() - widget_size_.height();
-    if (browser_view_) {
-      static_cast<NativeBrowserViewViews*>(browser_view_)
-          ->SetAutoResizeProportions(widget_size_);
 
-      static_cast<NativeBrowserViewViews*>(browser_view_)
-          ->AutoResize(new_bounds, width_delta, height_delta);
-    }
-    for (auto iter = browser_views_.begin(); iter != browser_views_.end();
+    for (const auto & item : browser_views_) {
          iter++) {
       static_cast<NativeBrowserViewViews*>((*iter))->SetAutoResizeProportions(
           widget_size_);
@@ -1187,6 +1162,7 @@ void NativeWindowViews::OnWidgetBoundsChanged(views::Widget* widget,
       static_cast<NativeBrowserViewViews*>((*iter))->AutoResize(
           new_bounds, width_delta, height_delta);
     }
+
     NotifyWindowResize();
     widget_size_ = new_bounds.size();
   }
