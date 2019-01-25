@@ -21,11 +21,7 @@ if (installedVersion === version && fs.existsSync(path.join(__dirname, platformP
   process.exit(0)
 }
 
-var mirror
-
-if (version.indexOf('nightly') !== -1) {
-  mirror = 'https://github.com/electron/nightlies/releases/download/v'
-}
+var mirror = 'https://github.com/stream-labs/electron/releases/download/'
 
 // downloads if not cached
 download({

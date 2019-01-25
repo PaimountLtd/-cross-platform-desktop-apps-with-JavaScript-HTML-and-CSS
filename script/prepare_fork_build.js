@@ -2,6 +2,7 @@ const temp = require('temp')
 const fs = require('fs')
 const fse = require('fs-extra')
 var extract = require('extract-zip')
+const crypto = require('crypto');
 const path = require('path')
 const childProcess = require('child_process')
 const {GitProcess} = require('dugite')
@@ -64,7 +65,7 @@ new Promise((resolve, reject) => {
     JSON.stringify(packageJson, null, 2)
   )
  
-  fs.writeFileSync(path.join(tempDir, 'path.txt'), 'dist/electron.exe')
+  //fs.writeFileSync(path.join(tempDir, 'path.txt'), 'dist/electron.exe')
   
   //copy electron.d.ts
   electronts_source = path.join(__dirname, '..',"node_modules","electron-typescript-definitions", 'electron.d.ts')
@@ -72,21 +73,38 @@ new Promise((resolve, reject) => {
   console.log("Copy ts file from: " + electronts_source )
   fs.copyFileSync(electronts_source , electronts_dest)
   
-  //copy files from dist 
-  electrondist_zip =  path.join(__dirname, '..',"dist", 'electron-v2.0.16-win32-x64.zip')
-  electrondist_unzip = path.join(tempDir, 'dist') 
-  console.log("Unzip dist files from: "+electrondist_zip)
-  extract(electrondist_zip, {dir: electrondist_unzip}, function (err) {
-    console.log("Start making package with npm pack ")
-    childProcess.execSync('npm pack', { cwd: tempDir } )
- 
-    const tarballTempPath = path.join(tempDir, `${rootPackageJson.name}-${rootPackageJson.version}.tgz`);
-    const tarballPath = path.join(__dirname, "..", `${rootPackageJson.name}-${rootPackageJson.version}.tgz`);
-    
-    fse.moveSync(tarballTempPath, tarballPath);
+  console.log("Start making package with npm pack ")
+  childProcess.execSync('npm pack', { cwd: tempDir } )
+  const tarballTempPath = path.join(tempDir, `${rootPackageJson.name}-${rootPackageJson.version}.tgz`);
+  const tarballPath = path.join(__dirname, "..", `${rootPackageJson.name}-${rootPackageJson.version}.tgz`);
+  
+  var source = fs.createReadStream(tarballTempPath)
+  var destination = fs.createWriteStream(tarballPath)
+
+  source.pipe(destination, { end: false });
+  source.on("end", function(){
+    fs.unlinkSync(tarballTempPath);
 
     console.log("Package crated and can be uploaded to github as a release: " + tarballPath);
-  })  
+
+    const electrondist_zip_filename = `${rootPackageJson.name}-v${rootPackageJson.version}-win32-x64.zip`
+    const electrondist_zip =  path.join(__dirname, '..',"dist", electrondist_zip_filename) //'electron-v2.0.16-win32-x64.zip')
+    console.log("zip with electron binaries have to be uploaded to github too : " + electrondist_zip);
+
+    //generate sha256 file 
+    const shasums_file = path.join(__dirname, "..", `SHASUMS256.txt`);
+    console.log("Checksum file have to be uploaded to github release too: " + shasums_file);
+    var stream = fs.createWriteStream(shasums_file);
+
+    const hash = crypto.createHash('sha256');
+    const input = fs.readFileSync(electrondist_zip)
+    hash.update(input);
+    stream.write(`${hash.digest('hex')}`+ " *"+ electrondist_zip_filename+"\n");
+
+    stream.end();
+    stream.on("finish", () => {  }); // not sure why you want to pass a boolean
+    stream.on("error", () => {  }); // don't forget this!
+  });
 })
 .catch((err) => {
   console.error(`Error: ${err}`)
