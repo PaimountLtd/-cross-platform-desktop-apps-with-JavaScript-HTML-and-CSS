@@ -26,6 +26,8 @@ namespace atom {
 enum AutoResizeFlags {
   kAutoResizeWidth = 0x1,
   kAutoResizeHeight = 0x2,
+  kAutoResizeHorizontal = 0x4,
+  kAutoResizeVertical = 0x8,
 };
 
 class NativeBrowserView {
