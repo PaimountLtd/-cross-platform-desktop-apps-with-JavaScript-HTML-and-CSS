@@ -158,6 +158,8 @@ void AtomSandboxedRendererClient::InitializeBindings(
   process.SetMethod("hang", AtomBindings::Hang);
   process.SetMethod("getHeapStatistics", &AtomBindings::GetHeapStatistics);
   process.SetMethod("getSystemMemoryInfo", &AtomBindings::GetSystemMemoryInfo);
+  process.SetMethod("getProcessMemoryInfo",
+                    &AtomBindings::GetProcessMemoryInfo);
   process.SetMethod(
       "getCPUUsage",
       base::Bind(&AtomBindings::GetCPUUsage, base::Unretained(metrics_.get())));
@@ -230,6 +232,8 @@ void AtomSandboxedRendererClient::DidCreateScriptContext(
   // Execute the function with proper arguments
   ignore_result(
       func->Call(context, v8::Null(isolate), node::arraysize(args), args));
+
+  InvokeIpcCallback(context, "onLoaded", std::vector<v8::Local<v8::Value>>());
 }
 
 void AtomSandboxedRendererClient::WillReleaseScriptContext(
